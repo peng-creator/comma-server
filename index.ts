@@ -1,3 +1,4 @@
+import { ZoneDefinition } from './src/types/Zone';
 import { loadDirChildren } from './src/resourceLoader';
 import express from 'express';
 import expressWs from 'express-ws';
@@ -14,6 +15,7 @@ import proxy from 'express-http-proxy'
 // const streamer = require("./node-http-streamer/index.js");
 // import serveStatic from 'serve-static';
 import { networkInterfaces } from 'os';
+import { getYoutubeSubtitles, searchYoutube } from './src/youtube/youtube';
 
 
 const app = express();
@@ -44,6 +46,35 @@ app.get('/resource/*', (req, res) => {
   res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
   res.sendFile(path.join(COMMA_HOME, decodeURIComponent(req.url)));
 });
+
+app.get('/api/youtube/:keyword', (req, res) => {
+  searchYoutube(req.params.keyword).then((searchResult: any) => {
+    res.send(searchResult)
+  }).catch((e: any) => {
+    res.status(500);
+    res.send(e);
+  });
+});
+
+app.get('/api/youtube/subtitles/:videoId', (req, res) => {
+  getYoutubeSubtitles(req.params.videoId).then((searchResult: any) => {
+    res.send(searchResult);
+  }).catch((e: any) => {
+    res.status(500);
+    res.send(e);
+  });
+});
+
+app.get('/api/youtube/:keyword/:pageToken', (req, res) => {
+  searchYoutube(req.params.keyword, req.params.pageToken).then((searchResult: any) => {
+    res.send(searchResult)
+  }).catch((e: any) => {
+    res.status(500);
+    res.send(e);
+  });
+});
+
+process.on("uncaughtException", (e) => console.log("uncaughtException:", e));
 
 app.get('/ipaddress', () => {
   const nets = networkInterfaces();
@@ -122,6 +153,33 @@ app.post('/api/card', (req, res) => {
     res.status(500);
     res.send(e);
   })
+});
+
+let zones: Map<string, ZoneDefinition> = new Map();
+
+setInterval(() => {
+  zones = [...zones.values()].filter(zone => {
+    return Date.now().valueOf() - zone.registerTimeStamp < 60000;
+  }).reduce((acc, curr) => {
+    acc.set(curr.id, curr);
+    return acc;
+  }, new Map());
+}, 10000);
+
+app.get('/api/zone', (req, res) => {
+  res.json([...zones.values()]);
+});
+
+app.delete('/api/zone/:id', (req, res) => {
+  zones.delete(req.params.id)
+  res.send('success');
+});
+
+app.post('/api/zone/register', (req, res) => {
+  for (let zone of req.body) {
+    zones.set(zone.id, zone);
+  }
+  res.send('success');
 });
 
 
