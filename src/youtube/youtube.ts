@@ -36,7 +36,7 @@ export const getYoutubeSubtitles = async (videoId: string) => {
           const preSameIndex = sameIndex - 1;
           const sameFirstWord = arr[preSameIndex];
           if (sameFirstWord.indexOf(firstWord) > -1) {
-            subtitle = [firstWord, ...arr.slice(sameIndex)].join(' ');
+            subtitle = [firstWord, ...arr.slice(sameIndex)].join(' ').replace(/&nbsp;/g, ' ');
           }
         }
       }

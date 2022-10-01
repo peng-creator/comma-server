@@ -16,7 +16,8 @@ import proxy from 'express-http-proxy'
 // import serveStatic from 'serve-static';
 import { networkInterfaces } from 'os';
 import { getYoutubeSubtitles, searchYoutube } from './src/youtube/youtube';
-
+import { promises as fs } from 'fs';
+const webHome = path.resolve(__dirname, './comma-web');
 
 const app = express();
 
@@ -203,6 +204,18 @@ const wsList = new Set<WebSocket>();
     wsList.delete(ws);
   })
   // console.log('socket', req.testing);
+});
+
+app.get('/*', (req, res) => {
+  console.log('req.originalUrl:', req.originalUrl);
+  const filePath = path.join(webHome, req.originalUrl);
+  if (filePath.startsWith(webHome)) {
+    res.sendFile(filePath);
+  } else {
+    console.log('file not exists:', filePath);
+    res.status(404);
+    res.send('');
+  }
 });
 
 app.listen(8080)
