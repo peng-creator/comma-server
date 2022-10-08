@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "rm -rf build && npx tsc --project ./ && node ./build"
+    "build": "rm -rf build && npx tsc --project ./ && cp -r comma-web ./build",
+    "start": "node ./build"
   },
   "keywords": [],
   "author": "",

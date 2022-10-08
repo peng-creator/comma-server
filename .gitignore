@@ -11,6 +11,7 @@
 
 # production
 /build
+/comma-web
 
 # misc
 .DS_Store

@@ -17,6 +17,7 @@ import proxy from 'express-http-proxy'
 import { networkInterfaces } from 'os';
 import { getYoutubeSubtitles, searchYoutube } from './src/youtube/youtube';
 import { promises as fs } from 'fs';
+import { getRecords, saveRecord } from './src/record/record';
 const webHome = path.resolve(__dirname, './comma-web');
 
 const app = express();
@@ -183,6 +184,33 @@ app.post('/api/zone/register', (req, res) => {
   res.send('success');
 });
 
+app.post('/api/record', (req, res) => {
+  saveRecord(req.body).then(() => {
+    res.send('success');
+  }).catch(e => {
+    res.status(500);
+    res.send(e);
+  })
+});
+
+app.get('/api/record', (req, res) => {
+  getRecords().then((records) => {
+    res.json(records);
+  }).catch(e => {
+    res.status(500);
+    res.send(e);
+  })
+});
+
+const ERROR_LOG_PATH = path.join(COMMA_HOME, 'error.log');
+fs.writeFile(ERROR_LOG_PATH, '');
+
+app.post('/api/error', (req, res) => {
+  if (req.body) {
+    fs.appendFile(ERROR_LOG_PATH, JSON.stringify(req.body));
+  }
+  res.send('success');
+});
 
 const wsList = new Set<WebSocket>();
 (app as any).ws('/', function(ws: WebSocket, req: any) {
@@ -209,8 +237,14 @@ const wsList = new Set<WebSocket>();
 app.get('/*', (req, res) => {
   console.log('req.originalUrl:', req.originalUrl);
   const filePath = path.join(webHome, req.originalUrl);
+  const webRoot = path.join(webHome, '/');
+  console.log('filePath:', filePath);
   if (filePath.startsWith(webHome)) {
-    res.sendFile(filePath);
+    if (filePath === webRoot) {
+      res.sendFile(path.join(webHome, 'index.html'));
+    } else {
+      res.sendFile(filePath);;
+    }
   } else {
     console.log('file not exists:', filePath);
     res.status(404);
