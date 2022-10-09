@@ -3,7 +3,7 @@ import {promises as fs} from 'fs';
 import { COMMA_HOME } from '../constant';
 import { mkdir } from '../utils/mkdir';
 
-const CACHE_VOLUME = 3;
+const CACHE_VOLUME = 20;
 const dir = PATH.join(COMMA_HOME, 'records');
 mkdir(dir);
 const RECORD_FILE = PATH.join(dir, 'records.json');

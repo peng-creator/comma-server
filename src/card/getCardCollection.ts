@@ -11,7 +11,9 @@ export const getCardCollection = async (keyword: string) => {
     .readdir(dir)
     .then((files) => {
       return Promise.all(
-        files.map((file) => fs.readFile(PATH.join(dir, file)))
+        files.filter((file) => {
+          return file.endsWith('.json') && !file.startsWith('.') && file.length === 41;
+        }).map((file) => fs.readFile(PATH.join(dir, file)))
       );
     })
     .then((bufs) => {
