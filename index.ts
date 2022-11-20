@@ -5,17 +5,15 @@ import expressWs from 'express-ws';
 import cors from 'cors';
 import { COMMA_HOME } from './src/constant';
 import path from 'path';
-import { getSubtitleOfVideo } from './src/subtitle';
+import { getSubtitleOfVideo, loadFromFileWithoutCache } from './src/subtitle';
 import { Ass } from './src/subtitle/ass/ass';
 import bodyParser from 'body-parser';
 import { getCardCollection } from './src/card/getCardCollection';
 import { getAllCardCollections, saveCard, searchFlashCardCollections } from './src/card/searchCardCollection';
 import WebSocket from 'ws';
-import proxy from 'express-http-proxy'
 // const streamer = require("./node-http-streamer/index.js");
 // import serveStatic from 'serve-static';
 import { networkInterfaces } from 'os';
-import { getYoutubeSubtitles, searchYoutube } from './src/youtube/youtube';
 import { promises as fs } from 'fs';
 import { getRecords, saveRecord } from './src/record/record';
 const webHome = path.resolve(__dirname, './comma-web');
@@ -49,33 +47,6 @@ app.get('/resource/*', (req, res) => {
   res.sendFile(path.join(COMMA_HOME, decodeURIComponent(req.url)));
 });
 
-app.get('/api/youtube/:keyword', (req, res) => {
-  searchYoutube(req.params.keyword).then((searchResult: any) => {
-    res.send(searchResult)
-  }).catch((e: any) => {
-    res.status(500);
-    res.send(e);
-  });
-});
-
-app.get('/api/youtube/subtitles/:videoId', (req, res) => {
-  getYoutubeSubtitles(req.params.videoId).then((searchResult: any) => {
-    res.send(searchResult);
-  }).catch((e: any) => {
-    res.status(500);
-    res.send(e);
-  });
-});
-
-app.get('/api/youtube/:keyword/:pageToken', (req, res) => {
-  searchYoutube(req.params.keyword, req.params.pageToken).then((searchResult: any) => {
-    res.send(searchResult)
-  }).catch((e: any) => {
-    res.status(500);
-    res.send(e);
-  });
-});
-
 process.on("uncaughtException", (e) => console.log("uncaughtException:", e));
 
 app.get('/ipaddress', () => {
@@ -104,9 +75,7 @@ app.get('/ipaddress', () => {
 // getting the subtitle of the video filePath, filePath 为resource的子路径
 app.get('/api/video/subtitle/:filePath', (req, res) => {
   const videoPath = path.join(COMMA_HOME, 'resource', req.params.filePath); 
-  console.log('start trying to loading subtitle of video:', videoPath);
   getSubtitleOfVideo(videoPath).then((result) => {
-    console.log('send back subtitle of ', videoPath, ', subtitle length:', result.length);
     res.json(result);
   }).catch(e => {
     res.status(500);
@@ -117,10 +86,19 @@ app.get('/api/video/subtitle/:filePath', (req, res) => {
 // getting the subtitle of the video filePath, filePath 为resource的子路径
 app.post('/api/video/subtitle/:filePath', (req, res) => {
   const videoPath = path.join(COMMA_HOME, 'resource', req.params.filePath);
-  console.log('saving subtitle of video:', videoPath);
-  console.log('subtitle:', req.body);
   Ass.saveByVideoSrc(videoPath, req.body).then(() => {
     res.send('success');
+  });
+});
+
+// getting the subtitle of the video filePath, filePath 为resource的子路径
+app.get('/api/reload/video/subtitle/:filePath', (req, res) => {
+  const videoPath = path.join(COMMA_HOME, 'resource', req.params.filePath); 
+  loadFromFileWithoutCache(videoPath).then((result) => {
+    res.json(result);
+  }).catch(e => {
+    res.status(500);
+    res.json([]);
   });
 });
 
@@ -226,7 +204,6 @@ const wsList = new Set<WebSocket>();
       }
       _ws.send(msg);
     })
-    console.log(msg);
   });
   ws.on('close', () => {
     wsList.delete(ws);

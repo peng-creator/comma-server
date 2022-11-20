@@ -5,6 +5,7 @@ import { mkdir } from '../utils/mkdir';
 import { promises as fs } from 'fs';
 import { v5 as uuidv5 } from 'uuid';
 import { FlashCard } from '../types/FlashCard';
+import { writeJSON } from '../JsonDB';
 
 export const CARD_COLLECTION_NAMESPACE = '3b671a64-40d5-491e-99b0-da01ff1f3341';
 
@@ -53,6 +54,47 @@ const flashCardMiniSearch = new MiniSearch<FlashCardSearchItem>({
   tokenize: (s) => s.split(/\W/),
 });
 
+export const reindex = async () => {
+  let nextCardIndexMapCache: CardIndexMap = {};
+  const res = await fs.readdir(L1);
+  for (let dir of res) {
+    if (dir.startsWith('.') || dir.endsWith('json')) {
+      continue;
+    }
+    const cardDir = PATH.join(L1, dir);
+    const cardDirStat = await fs.stat(cardDir);
+    if (!cardDirStat.isDirectory()) {
+      continue;
+    }
+    const childFiles = await fs.readdir(cardDir);
+    let files = childFiles.filter((file) => {
+      return file.endsWith('.json') && !file.startsWith('.') && file.length === 41;
+    });
+    for (let childFile of files) {
+      const cardBuf = await fs.readFile(PATH.join(cardDir, childFile));
+      try {
+        const card: FlashCard = JSON.parse(cardBuf.toString());
+        nextCardIndexMapCache[dir] = card.front.word;
+        // console.log('addIndex:', dir, ", word:", card.front.word);
+      } catch (e) {
+        fs.unlink(PATH.join(cardDir, childFile));
+      }
+    }
+  }
+  cardIndexMapCache = nextCardIndexMapCache;
+  cardCollections = [...new Set(Object.values(cardIndexMapCache))];
+  flashCardMiniSearch.removeAll();
+  addSearchItems(
+    cardCollections.map((id) => {
+      return { id };
+    })
+  );
+  //  console.log(nextCardIndexMapCache);
+  writeJSON(cardIndexMapCache, PATH.join(L1, 'index.json'));
+}
+
+reindex();
+
 export const addSearchItems = (items: FlashCardSearchItem[]) => {
   items = items.filter(({ id }) => {
     return ids[id] === undefined;
@@ -92,17 +134,9 @@ export const saveCard = async (cardToSave: FlashCard) => {
     .then(() => {
       const _cardToSave = { ...cardToSave, hasChanged: false };
       console.log('cardToSave:', _cardToSave);
-      return fs.writeFile(
-        PATH.join(dir, `${_cardToSave.id}.json`),
-        JSON.stringify(_cardToSave)
-      );
+      return writeJSON(_cardToSave, PATH.join(dir, `${_cardToSave.id}.json`));
     })
-    .then(() => {
-      return fs.writeFile(
-        PATH.join(L1, 'index.json'),
-        JSON.stringify(cardIndexMapCache)
-      );
-    })
+    .then(() => writeJSON(cardIndexMapCache, PATH.join(L1, 'index.json')))
     .then(() => {
       cardToSave.hasChanged = false;
     })

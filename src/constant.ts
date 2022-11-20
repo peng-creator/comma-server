@@ -1,4 +1,4 @@
-export const COMMA_HOME = '';
+export const COMMA_HOME = 'E:\\BaiduSyncdisk\\comma';
 if (!COMMA_HOME) {
     throw new Error('Please set a path to COMMA_HOME')
 }

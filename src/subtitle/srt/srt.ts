@@ -9,7 +9,13 @@ export function srtToSubtitle(content: string) {
   return result
     .map(({ id, startTime, endTime, text }) => {
       const dom = new JSDOM(`<!DOCTYPE html><p>${text}</p>`);
-      text = dom.window.document.querySelector("p")?.textContent?.toLowerCase() || text;
+      text = dom.window.document.querySelector("p")?.textContent?.split(' ').map((w) => {
+        const isUpperCase = /^[^a-z]+$/.test(w);
+        if (isUpperCase) {
+          return w.toLocaleLowerCase();
+        }
+        return w;
+      }).join(' ') || text;
       return {
         id,
         start: timeToMilliseconds(startTime.replace(',', '.')),

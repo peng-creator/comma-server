@@ -2,6 +2,7 @@ import PATH from 'path';
 import {promises as fs} from 'fs';
 import { COMMA_HOME } from '../constant';
 import { mkdir } from '../utils/mkdir';
+import { writeJSON } from '../JsonDB';
 
 const CACHE_VOLUME = 20;
 const dir = PATH.join(COMMA_HOME, 'records');
@@ -41,7 +42,7 @@ export const saveRecord = async (record: Record) => {
         const recordToClear = records.sort((a, b) => a.timestamp! - b.timestamp!)[0];
         delete recordCache[recordToClear.file];
     }
-    return fs.writeFile(RECORD_FILE, JSON.stringify(recordCache));
+    return writeJSON(recordCache, RECORD_FILE);
 }
 
 export const getRecords = async () => {

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rm -rf build && npx tsc --project ./ && cp -r comma-web ./build",
-    "start": "node ./build"
+    "start": "node ./build",
+    "dev": "npm run build && npm start"
   },
   "keywords": [],
   "author": "",
